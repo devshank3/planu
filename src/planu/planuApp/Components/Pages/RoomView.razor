@@ -1,0 +1,287 @@
+@page "/room/{RoomId}"
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<PageTitle>Room @RoomId - Planning Poker</PageTitle>
+
+<div class="poker-container">
+    @if (room == null)
+    {
+        <div class="text-center mt-2">
+            <h2>Connecting to room...</h2>
+        </div>
+    }
+    else
+    {
+        <div class="flex-between mb-2">
+            <div>
+                <h2>Room: @RoomId</h2>
+                @if (isModerator)
+                {
+                    <span class="badge">Moderator</span>
+                }
+            </div>
+            
+            <div>
+                <button class="btn btn-secondary" @onclick="CopyRoomLink">Copy Room Link</button>
+            </div>
+        </div>
+
+        @if (isModerator)
+        {
+            <div style="background-color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--chocolate-plum);">
+                <h3>Moderator Controls</h3>
+                
+                <div class="form-group" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                    <input @bind="newTopic" class="form-control" placeholder="What are we estimating?" style="flex: 1;" />
+                    <button class="btn btn-accent" @onclick="SetTopic">Set Topic</button>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" @onclick="RevealCards" disabled="@room.CardsRevealed">Reveal Cards</button>
+                    <button class="btn btn-secondary" @onclick="ResetGame">Reset Round</button>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(room.Topic))
+        {
+            <div class="text-center mb-2">
+                <h3 style="color: var(--terracotta-clay);">Topic: @room.Topic</h3>
+            </div>
+        }
+
+        <!-- Card Deck -->
+        @if (!isSpectator || isModerator)
+        {
+            <div class="card-deck">
+                @foreach (var card in room.GetAvailableCards())
+                {
+                    <div class="poker-card @(mySelectedCard == card ? "selected" : "")" @onclick="() => SelectCard(card)">
+                        @card
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Results / Players -->
+        @if (room.CardsRevealed)
+        {
+            <div class="results-area">
+                <h3>Average Estimate</h3>
+                <div class="average-score">@CalculateAverage()</div>
+                
+                <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem;">
+                    <div>Lowest: <span class="highlight-lowest">@GetLowest()</span></div>
+                    <div>Highest: <span class="highlight-highest">@GetHighest()</span></div>
+                </div>
+            </div>
+        }
+
+        <div class="player-list">
+            @foreach (var p in room.Players)
+            {
+                <div class="player-item @(!string.IsNullOrEmpty(p.SelectedCard) ? "voted" : "")">
+                    <div class="name">
+                        @p.Name 
+                        @if(p.IsModerator) { <span title="Moderator">👑</span> }
+                    </div>
+                    
+                    @if (room.CardsRevealed)
+                    {
+                        <div class="player-card-result">
+                            @(string.IsNullOrEmpty(p.SelectedCard) ? "-" : p.SelectedCard)
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="status">
+                            @(string.IsNullOrEmpty(p.SelectedCard) ? "Thinking..." : "Ready!")
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string RoomId { get; set; } = "";
+
+    private HubConnection? hubConnection;
+    private Room? room;
+    private string playerName = "";
+    private bool isModerator = false;
+    private bool isSpectator = false;
+    private string mySelectedCard = "";
+    private string newTopic = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("name", out var name))
+        {
+            playerName = name;
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        if (query.TryGetValue("isModerator", out var mod))
+        {
+            isModerator = mod == "true";
+        }
+
+        string series = "Fibonacci";
+        if (query.TryGetValue("series", out var s))
+        {
+            series = s;
+        }
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/pokerhub"))
+            .Build();
+
+        hubConnection.On<Room>("RoomJoined", (r) =>
+        {
+            room = r;
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<Room>("RoomUpdated", (r) =>
+        {
+            room = r;
+            
+            // Check if my card was reset
+            var me = room.Players.FirstOrDefault(p => p.Name == playerName);
+            if (me != null && string.IsNullOrEmpty(me.SelectedCard))
+            {
+                mySelectedCard = "";
+            }
+            
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<string>("Error", (msg) =>
+        {
+            // Simple fallback, redirect to home on error
+            NavigationManager.NavigateTo("/");
+        });
+
+        await hubConnection.StartAsync();
+
+        if (isModerator)
+        {
+            await hubConnection.SendAsync("CreateRoom", RoomId, playerName, series);
+        }
+        else
+        {
+            await hubConnection.SendAsync("JoinRoom", RoomId, playerName);
+        }
+    }
+
+    private async Task SelectCard(string card)
+    {
+        if (hubConnection is not null && !room.CardsRevealed)
+        {
+            // Allow deselecting
+            mySelectedCard = mySelectedCard == card ? "" : card;
+            await hubConnection.SendAsync("SelectCard", RoomId, mySelectedCard);
+        }
+        else if (hubConnection is not null && room.CardsRevealed)
+        {
+             // They can change vote after reveal
+             mySelectedCard = mySelectedCard == card ? "" : card;
+             await hubConnection.SendAsync("SelectCard", RoomId, mySelectedCard);
+        }
+    }
+
+    private async Task RevealCards()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("RevealCards", RoomId);
+        }
+    }
+
+    private async Task ResetGame()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("ResetGame", RoomId);
+        }
+    }
+
+    private async Task SetTopic()
+    {
+        if (hubConnection is not null && !string.IsNullOrWhiteSpace(newTopic))
+        {
+            await hubConnection.SendAsync("UpdateTopic", RoomId, newTopic);
+            newTopic = ""; // Clear input after setting
+        }
+    }
+
+    private async Task CopyRoomLink()
+    {
+        // Simple client-side clipboard copy logic would go here.
+        // For server-side Blazor, we can use JS interop.
+        var url = NavigationManager.BaseUri + "room/" + RoomId;
+        // Requires JS interop setup to execute `navigator.clipboard.writeText(url)`
+    }
+
+    private string CalculateAverage()
+    {
+        if (room == null) return "0";
+
+        var validVotes = room.Players
+            .Where(p => !string.IsNullOrEmpty(p.SelectedCard) && double.TryParse(p.SelectedCard, out _))
+            .Select(p => double.Parse(p.SelectedCard!))
+            .ToList();
+
+        if (!validVotes.Any()) return "N/A";
+
+        return Math.Round(validVotes.Average(), 1).ToString();
+    }
+
+    private string GetLowest()
+    {
+        if (room == null) return "-";
+        
+        var validVotes = room.Players
+            .Where(p => !string.IsNullOrEmpty(p.SelectedCard) && double.TryParse(p.SelectedCard, out _))
+            .Select(p => double.Parse(p.SelectedCard!))
+            .ToList();
+
+        if (!validVotes.Any()) return "-";
+
+        return validVotes.Min().ToString();
+    }
+
+    private string GetHighest()
+    {
+        if (room == null) return "-";
+        
+        var validVotes = room.Players
+            .Where(p => !string.IsNullOrEmpty(p.SelectedCard) && double.TryParse(p.SelectedCard, out _))
+            .Select(p => double.Parse(p.SelectedCard!))
+            .ToList();
+
+        if (!validVotes.Any()) return "-";
+
+        return validVotes.Max().ToString();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

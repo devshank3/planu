@@ -1,0 +1,215 @@
+:root {
+    --ash-grey: #c0caad;
+    --ash-grey-neo: #9da9a0;
+    --chocolate-plum: #654C4F;
+    --terracotta-clay: #b26e63;
+    --golden-sand: #CEC075;
+    
+    --bg-color: #f9fbf6;
+    --text-main: #333;
+    --text-muted: #555;
+    --text-light: #fff;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.poker-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Typography */
+h1, h2, h3 {
+    color: var(--chocolate-plum);
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: var(--terracotta-clay);
+    color: var(--text-light);
+}
+
+.btn-primary:hover {
+    background-color: #9c5c52;
+}
+
+.btn-secondary {
+    background-color: var(--ash-grey-neo);
+    color: var(--text-light);
+}
+
+.btn-secondary:hover {
+    background-color: #8b968e;
+}
+
+.btn-accent {
+    background-color: var(--golden-sand);
+    color: var(--text-main);
+}
+
+.btn-accent:hover {
+    background-color: #bab064;
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--ash-grey);
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    border-color: var(--ash-grey-neo);
+    outline: none;
+}
+
+/* Cards */
+.card-deck {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.poker-card {
+    width: 80px;
+    height: 120px;
+    background-color: var(--text-light);
+    border: 3px solid var(--ash-grey-neo);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--chocolate-plum);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+    user-select: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.poker-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+}
+
+.poker-card.selected {
+    background-color: var(--ash-grey);
+    border-color: var(--terracotta-clay);
+    color: var(--chocolate-plum);
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+/* Player List */
+.player-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.player-item {
+    background-color: var(--text-light);
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border-top: 5px solid var(--ash-grey);
+}
+
+.player-item .name {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--chocolate-plum);
+}
+
+.player-item .status {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.player-item.voted {
+    border-top-color: var(--golden-sand);
+}
+
+.player-item.voted .status {
+    color: var(--golden-sand);
+    font-weight: bold;
+}
+
+.player-card-result {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-top: 1rem;
+    color: var(--terracotta-clay);
+}
+
+/* Results Area */
+.results-area {
+    background-color: var(--ash-grey);
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    margin-top: 2rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.average-score {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--chocolate-plum);
+    margin: 1rem 0;
+}
+
+.highlight-lowest {
+    color: var(--golden-sand);
+    font-weight: bold;
+}
+
+.highlight-highest {
+    color: var(--terracotta-clay);
+    font-weight: bold;
+}
+
+/* Utility */
+.text-center { text-align: center; }
+.mt-2 { margin-top: 2rem; }
+.mb-2 { margin-bottom: 2rem; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.badge {
+    background-color: var(--chocolate-plum);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+}

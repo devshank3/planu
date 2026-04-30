@@ -1,0 +1,71 @@
+@page "/"
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<PageTitle>Planning Poker - Lobby</PageTitle>
+
+<div class="poker-container text-center">
+    <h1 class="mb-2">Planning Poker</h1>
+    
+    <div class="row" style="display: flex; justify-content: center; gap: 2rem;">
+        <!-- Create Room -->
+        <div style="background-color: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex: 1; max-width: 400px; border-top: 5px solid var(--terracotta-clay);">
+            <h2 style="margin-top: 0;">Create a Room</h2>
+            
+            <div class="form-group">
+                <input @bind="moderatorName" class="form-control" placeholder="Your Display Name" />
+            </div>
+            
+            <div class="form-group">
+                <select @bind="selectedSeries" class="form-control">
+                    <option value="Fibonacci">Fibonacci (0, 1, 2, 3, 5, 8...)</option>
+                    <option value="Normal">Normal (0, 1, 2, 3, 4, 5...)</option>
+                    <option value="Other">Custom</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%;" @onclick="CreateRoom">Create Room</button>
+        </div>
+
+        <!-- Join Room -->
+        <div style="background-color: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex: 1; max-width: 400px; border-top: 5px solid var(--ash-grey-neo);">
+            <h2 style="margin-top: 0;">Join a Room</h2>
+            
+            <div class="form-group">
+                <input @bind="playerName" class="form-control" placeholder="Your Display Name" />
+            </div>
+            
+            <div class="form-group">
+                <input @bind="joinRoomId" class="form-control" placeholder="Room Code" />
+            </div>
+            
+            <button class="btn btn-secondary" style="width: 100%;" @onclick="JoinRoom">Join Room</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string moderatorName = "";
+    private string playerName = "";
+    private string joinRoomId = "";
+    private string selectedSeries = "Fibonacci";
+
+    private void CreateRoom()
+    {
+        if (string.IsNullOrWhiteSpace(moderatorName)) return;
+
+        // Generate a random room id
+        var roomId = Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper();
+        
+        // Navigate to room with parameters
+        NavigationManager.NavigateTo($"/room/{roomId}?name={Uri.EscapeDataString(moderatorName)}&series={selectedSeries}&isModerator=true");
+    }
+
+    private void JoinRoom()
+    {
+        if (string.IsNullOrWhiteSpace(playerName) || string.IsNullOrWhiteSpace(joinRoomId)) return;
+
+        // Navigate to room with parameters
+        NavigationManager.NavigateTo($"/room/{joinRoomId}?name={Uri.EscapeDataString(playerName)}");
+    }
+}
