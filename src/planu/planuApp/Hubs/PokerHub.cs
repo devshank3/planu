@@ -17,14 +17,23 @@ namespace planuApp.Hubs
         {
             var room = _roomManager.CreateRoom(roomId, Context.ConnectionId, cardSeriesType);
             
-            var player = new Player
+            var existingPlayer = room.Players.FirstOrDefault(p => p.Name == playerName);
+            if (existingPlayer == null)
             {
-                ConnectionId = Context.ConnectionId,
-                Name = playerName,
-                IsModerator = true
-            };
+                var player = new Player
+                {
+                    ConnectionId = Context.ConnectionId,
+                    Name = playerName,
+                    IsModerator = true
+                };
+                room.Players.Add(player);
+            }
+            else
+            {
+                existingPlayer.ConnectionId = Context.ConnectionId;
+                existingPlayer.IsModerator = true;
+            }
             
-            room.Players.Add(player);
             _roomManager.UpdateRoom(room);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
@@ -41,8 +50,8 @@ namespace planuApp.Hubs
                 return;
             }
 
-            // Check if player already exists by connection ID (reconnect logic could go here)
-            var existingPlayer = room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
+            // Check if player already exists by name
+            var existingPlayer = room.Players.FirstOrDefault(p => p.Name == playerName);
             if (existingPlayer == null)
             {
                 var player = new Player
@@ -52,8 +61,13 @@ namespace planuApp.Hubs
                     IsModerator = false
                 };
                 room.Players.Add(player);
-                _roomManager.UpdateRoom(room);
             }
+            else
+            {
+                existingPlayer.ConnectionId = Context.ConnectionId;
+            }
+            
+            _roomManager.UpdateRoom(room);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
             await Clients.Caller.SendAsync("RoomJoined", room);

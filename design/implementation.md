@@ -49,3 +49,19 @@ Implement a Planning Poker tool as an interactive Blazor Server application usin
 - Verify real-time updates when players join, select cards, and when the moderator reveals cards or resets the game.
 - Verify average score is calculated when cards are revealed and highlights min/max estimates.
 - Verify UI theme correctly applies the custom palette (Ash Grey, Terracotta Clay, etc.).
+
+## Phase 2 Enhancements
+
+### 1. Copy Room Link
+- **File:** `Components/Pages/RoomView.razor`
+- **Changes:** Injected `IJSRuntime` to interact with the client's clipboard. The `CopyRoomLink` method uses `JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", url)` to place the direct link to the room into the user's clipboard.
+
+### 2. Duplicate Player Bug Fix
+- **Files:** `Hubs/PokerHub.cs`, `Services/RoomStateManager.cs`
+- **Changes:** 
+  - Modified the joining logic in `PokerHub.cs` to identify existing players by their `Name` rather than `ConnectionId`. This prevents duplicates when a user reconnects or accidentally triggers multiple joins. If the user already exists, we simply update their `ConnectionId`.
+  - Updated `RoomStateManager.CreateRoom` to check if a room with the ID already exists via `TryGetValue`. If it does, we just update the `ModeratorId` and return the existing room instead of creating and replacing it, ensuring consistent state across reconnections.
+
+### 3. Layout Restructuring (Top Navigation)
+- **Files:** `Components/Layout/MainLayout.razor`, `Components/Layout/NavMenu.razor`
+- **Changes:** Removed the sidebar layout entirely and switched to a top navigation bar (horizontal flex layout). The unneeded ASP.NET Core template pages (`Counter.razor`, `Weather.razor`) and their associated navigation links were completely removed to simplify the app and focus it strictly on the Planning Poker experience.

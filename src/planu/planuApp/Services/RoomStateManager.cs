@@ -15,6 +15,12 @@ namespace planuApp.Services
 
         public Room CreateRoom(string roomId, string moderatorId, string cardSeriesType, bool onlyModeratorCanReveal = false)
         {
+            if (_rooms.TryGetValue(roomId, out var existingRoom))
+            {
+                existingRoom.ModeratorId = moderatorId;
+                return existingRoom;
+            }
+
             var room = new Room
             {
                 RoomId = roomId,

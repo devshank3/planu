@@ -1,6 +1,7 @@
 @page "/room/{RoomId}"
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
 
 <PageTitle>Room @RoomId - Planning Poker</PageTitle>
@@ -229,10 +230,15 @@
 
     private async Task CopyRoomLink()
     {
-        // Simple client-side clipboard copy logic would go here.
-        // For server-side Blazor, we can use JS interop.
         var url = NavigationManager.BaseUri + "room/" + RoomId;
-        // Requires JS interop setup to execute `navigator.clipboard.writeText(url)`
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", url);
+        }
+        catch (Exception)
+        {
+            // Fallback or ignore if clipboard access is denied
+        }
     }
 
     private string CalculateAverage()
