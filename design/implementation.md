@@ -65,3 +65,14 @@ Implement a Planning Poker tool as an interactive Blazor Server application usin
 ### 3. Layout Restructuring (Top Navigation)
 - **Files:** `Components/Layout/MainLayout.razor`, `Components/Layout/NavMenu.razor`
 - **Changes:** Removed the sidebar layout entirely and switched to a top navigation bar (horizontal flex layout). The unneeded ASP.NET Core template pages (`Counter.razor`, `Weather.razor`) and their associated navigation links were completely removed to simplify the app and focus it strictly on the Planning Poker experience.
+
+## Phase 3 Enhancements
+
+### Direct Link Join Flow
+- **File:** `Components/Pages/RoomView.razor`
+- **Issue Context:** When moderators copy the room link, the resulting URL does not contain a `?name=` parameter. Previously, the `RoomView` handled missing names by automatically redirecting players back to the `/` Home page, forcing them to re-enter the room ID and name manually.
+- **Changes:** 
+  - Refactored `RoomView.razor` to check for the `name` query parameter inside `OnInitializedAsync`.
+  - Instead of redirecting to the Home page when the name is absent, we set a `requiresNamePrompt` boolean.
+  - The UI presents a clean "Join Room" inline card directly on the `/room/{RoomId}` route asking for the user's Display Name.
+  - Upon entering a name and hitting Enter (or clicking Join), the app establishes the SignalR hub connection via `InitializeHubConnection(series)` directly, seamlessly placing them into the room without unnecessary redirects.

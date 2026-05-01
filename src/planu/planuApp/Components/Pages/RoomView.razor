@@ -7,7 +7,22 @@
 <PageTitle>Room @RoomId - Planning Poker</PageTitle>
 
 <div class="poker-container">
-    @if (room == null)
+    @if (requiresNamePrompt)
+    {
+        <div class="text-center mt-2" style="max-width: 400px; margin: 0 auto;">
+            <div style="background-color: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-top: 5px solid var(--ash-grey-neo);">
+                <h2 style="margin-top: 0; color: var(--chocolate-plum);">Join Room @RoomId</h2>
+                
+                <div class="form-group mb-3 text-start">
+                    <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Your Display Name</label>
+                    <input @bind="playerName" class="form-control" placeholder="Enter your name" @onkeyup="@(e => e.Key == "Enter" ? JoinWithProvidedName() : Task.CompletedTask)" />
+                </div>
+                
+                <button class="btn btn-primary" style="width: 100%;" @onclick="JoinWithProvidedName">Join Room</button>
+            </div>
+        </div>
+    }
+    else if (room == null)
     {
         <div class="text-center mt-2">
             <h2>Connecting to room...</h2>
@@ -119,6 +134,8 @@
     private string mySelectedCard = "";
     private string newTopic = "";
 
+    private bool requiresNamePrompt = false;
+
     protected override async Task OnInitializedAsync()
     {
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
@@ -127,13 +144,34 @@
         if (query.TryGetValue("name", out var name))
         {
             playerName = name;
+            
+            if (query.TryGetValue("isModerator", out var mod))
+            {
+                isModerator = mod == "true";
+            }
+
+            string series = "Fibonacci";
+            if (query.TryGetValue("series", out var s))
+            {
+                series = s;
+            }
+
+            await InitializeHubConnection(series);
         }
         else
         {
-            NavigationManager.NavigateTo("/");
-            return;
+            requiresNamePrompt = true;
         }
+    }
 
+    private async Task JoinWithProvidedName()
+    {
+        if (string.IsNullOrWhiteSpace(playerName)) return;
+        requiresNamePrompt = false;
+        
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        
         if (query.TryGetValue("isModerator", out var mod))
         {
             isModerator = mod == "true";
@@ -144,7 +182,12 @@
         {
             series = s;
         }
+        
+        await InitializeHubConnection(series);
+    }
 
+    private async Task InitializeHubConnection(string series)
+    {
         hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/pokerhub"))
             .Build();
